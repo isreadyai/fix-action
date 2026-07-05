@@ -69,7 +69,7 @@ jobs:
       pull-requests: write # open the PR
       id-token: write # upload the CI report + repo badge
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: AI readiness fix PR
         uses: isreadyai/fix-action@v1
@@ -142,7 +142,7 @@ jobs:
       pull-requests: write
       id-token: write # upload the CI report + repo badge
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: AI readiness fix PR
         uses: isreadyai/fix-action@v1
         with:
