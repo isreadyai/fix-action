@@ -7,6 +7,12 @@ notes on each release — do not edit by hand.
 
 ## Unreleased
 
+## v1.0.2 — 2026-07-07
+
+- Bundle the CI report + repo-badge upload (`dist/ci-upload.js`) into the fix action too, so the CI Reports dashboard and repo badge populate for fix-only users.
+- Demote the request-budget pruning notice to a debug-level log — quieter normal runs.
+- Refresh the bundled scanner from the monorepo.
+
 ## v1.0.1 — 2026-07-05
 
 ## v1.0.0 — 2026-07-02
