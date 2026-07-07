@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // @bun
 
 // fix-action/solve.ts
@@ -354,7 +354,7 @@ function pruneMessagesToBudget(messages, budget) {
     prunedCount++;
   }
   if (prunedCount > 0) {
-    console.error(`isready solve: pruned ${prunedCount} old tool result(s) to fit the ${budget}-byte request budget`);
+    console.error(`::debug::isready solve: pruned ${prunedCount} old tool result(s) to fit the ${budget}-byte request budget`);
   }
 }
 function emergencyTranscript(system, messages, findings) {
