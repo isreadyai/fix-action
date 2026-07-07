@@ -152,6 +152,13 @@ function looksBinary(content) {
   }
   return false;
 }
+function safeReaddir(dir) {
+  try {
+    return readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+}
 function listFiles(dir) {
   const start = dir === "" || dir === "." ? root : safePath(dir);
   const found = [];
@@ -159,7 +166,7 @@ function listFiles(dir) {
     if (found.length >= MAX_LIST) {
       return;
     }
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
+    for (const entry of safeReaddir(current)) {
       if (found.length >= MAX_LIST) {
         return;
       }
@@ -195,6 +202,12 @@ function runTool(name, args) {
   try {
     if (name === "list_files") {
       const dir = typeof args.dir === "string" ? args.dir : "";
+      if (dir !== "" && dir !== ".") {
+        const full = safePath(dir);
+        if (!existsSync(full) || !statSync(full).isDirectory()) {
+          return JSON.stringify({ error: "not_found" });
+        }
+      }
       return listFilesResult(dir);
     }
     if (name === "read_file") {
