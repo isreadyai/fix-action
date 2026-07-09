@@ -4018,6 +4018,16 @@ var CATEGORY_WEIGHTS = {
   [ECategory.TRUST]: 0.1,
   [ECategory.GEO_CONTENT]: 0.15
 };
+function aiSearchTrackScore(tracks) {
+  return typeof tracks.deep === "number" ? tracks.deep : tracks.base;
+}
+function readinessHeadlineScore(tracks) {
+  const search = aiSearchTrackScore(tracks);
+  if (typeof tracks.smart === "number") {
+    return Math.round((search + tracks.smart) / 2);
+  }
+  return search;
+}
 function scoreCategories(checks) {
   const order = Object.values(ECategory);
   return order.map((category) => {
@@ -4951,6 +4961,43 @@ function parseVersion(result) {
 ${result.stderr}`.match(/\d+\.\d+\.\d+/);
   return match?.[0] ?? null;
 }
+// apps/cli/package.json
+var package_default = {
+  name: "isreadyai",
+  version: "1.0.4",
+  description: "Check if your website is ready for AI — LLM crawlability & AI-SEO audit from your terminal",
+  homepage: "https://isready.ai",
+  license: "MIT",
+  author: "Smart Squad S.r.l. (https://smartsquad.io)",
+  repository: {
+    type: "git",
+    url: "git+https://github.com/isreadyai/isreadyai.git",
+    directory: "apps/cli"
+  },
+  bin: {
+    isready: "./dist/index.js",
+    isreadyai: "./dist/index.js"
+  },
+  files: [
+    "dist"
+  ],
+  type: "module",
+  publishConfig: {
+    access: "public"
+  },
+  scripts: {
+    build: "bun run scripts/build.ts",
+    clean: "rm -rf .turbo .next .expo dist coverage *.tsbuildinfo",
+    test: "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  devDependencies: {
+    "@clack/prompts": "^1.7.0",
+    "@isreadyai/scanner": "workspace:*",
+    "@types/bun": "^1.3.14",
+    typescript: "~6.0.3"
+  }
+};
 // apps/cli/src/ansi.ts
 var CSI2 = "\x1B[";
 function colorEnabled() {
@@ -5412,7 +5459,7 @@ var bgCyan2 = wrap2(46, 49);
 var eraseLine2 = `${CSI3}K`;
 
 // apps/cli/src/index.ts
-var VERSION = "0.1.0";
+var VERSION = package_default.version;
 var PASS_THRESHOLD = 50;
 await main();
 async function main() {
@@ -5460,9 +5507,9 @@ async function main() {
       spinner2.fail(`could not scan ${flags.url} \u2014 ${reason}`);
       process.exit(1);
     }
-    const overall = site !== null ? site.overall : report.overall;
-    const grade = site !== null ? site.grade : report.grade;
-    const baseLabel = `Agent Readability ${overall}/100 \u2014 ${grade.toUpperCase()}`;
+    const searchOverall = site !== null ? site.overall : report.overall;
+    const searchGrade = site !== null ? site.grade : report.grade;
+    const baseLabel = `Agent Readability ${searchOverall}/100 \u2014 ${searchGrade.toUpperCase()}`;
     const renderHuman = !flags.json && !flags.md && !flags.llm && !flags.quiet;
     const decorate = fancy ? withGutter : (text) => text;
     const emit = (text) => {
@@ -5496,6 +5543,25 @@ async function main() {
       const smart = smartSite ?? smartReport;
       return smart !== null ? `Smart Agent Readability ${smart.overall}/100 \u2014 ${smart.grade.toUpperCase()}` : "Smart Agent Readability unavailable";
     };
+    const smartTrack = () => smartSite ?? smartReport;
+    const headlineOverall = () => readinessHeadlineScore({
+      base: report.overall,
+      deep: site?.overall ?? null,
+      smart: smartTrack()?.overall ?? null
+    });
+    const headlineGrade = () => gradeOf(headlineOverall());
+    const readinessSummary = () => {
+      const score = headlineOverall();
+      const grade = headlineGrade();
+      const paint = scoreColor(score);
+      return `${accent2("\u25C6")} ${bold2("AI Readiness")} ${paint(bold2(`${score}/100`))} ${dim2("\u2014")} ${paint(grade.toUpperCase())}`;
+    };
+    const readinessJson = () => ({
+      overall: headlineOverall(),
+      grade: headlineGrade(),
+      aiSearch: searchOverall,
+      smartAgent: smartTrack()?.overall ?? null
+    });
     const smartSection = () => smartSite !== null ? renderSmartAgentSiteReport(smartSite) : smartReport !== null ? renderSmartAgentReport(smartReport) : smartError !== null ? renderSmartAgentUnavailable(shortError(smartError)) : "";
     if (renderHuman) {
       const baseText = site !== null ? renderSiteReport(site) : renderReport(report);
@@ -5506,6 +5572,9 @@ async function main() {
         await runSmartAudit();
         spinner2.stop(smartLabel());
         emit(smartSection());
+        if (smartTrack() !== null) {
+          emit(readinessSummary());
+        }
       }
       if (fancy) {
         outro(dim2("full report & monitoring \u2192 https://isready.ai"));
@@ -5521,6 +5590,7 @@ async function main() {
       if (flags.json) {
         process.stdout.write(`${JSON.stringify({
           ...site ?? report,
+          readiness: readinessJson(),
           ...flags.smart ? { smartAgent: smartSite ?? smartReport, smartAgentError: smartError } : {}
         }, null, 2)}
 `);
@@ -5531,17 +5601,17 @@ async function main() {
         process.stdout.write(`${reportToMarkdown(site ?? report, "human")}${smartMarkdown(smartReport, smartError)}
 `);
       } else if (flags.quiet) {
-        process.stdout.write(`${quietLine(overall, site !== null ? site.grade : report.grade)}${smartQuiet(smartReport, smartError)}
+        process.stdout.write(`${quietLine(headlineOverall(), headlineGrade())}${smartQuiet(smartTrack(), smartError)}
 `);
       }
     }
     await sendTelemetry({
       host: hostOf(report.finalUrl),
-      score: overall,
+      score: headlineOverall(),
       deep: flags.deep,
       smart: smartSite !== null || smartReport !== null
     });
-    process.exit(overall >= PASS_THRESHOLD ? 0 : 1);
+    process.exit(headlineOverall() >= PASS_THRESHOLD ? 0 : 1);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     spinner2.fail(`scan failed \u2014 ${message}`);
@@ -5788,7 +5858,7 @@ function helpText() {
     `  isreadyai <url> [options]`,
     "",
     `${b2("OPTIONS")}`,
-    `  --json        Print the raw IScanReport as JSON (no decoration)`,
+    `  --json        Print the raw report JSON plus readiness summary (no decoration)`,
     `  --md          Print the report as human-readable Markdown`,
     `  --llm         Print an AI-agent fix plan (paste into Claude Code/Cursor)`,
     `  --quiet, -q   Print only the final score line`,
@@ -5801,7 +5871,7 @@ function helpText() {
     "",
     `${b2("EXAMPLES")}`,
     `  ${dim2("$")} isreadyai example.com`,
-    `  ${dim2("$")} isreadyai https://example.com --json | jq .overall`,
+    `  ${dim2("$")} isreadyai https://example.com --json | jq .readiness.overall`,
     `  ${dim2("$")} isreadyai example.com --quiet`,
     `  ${dim2("$")} isreadyai example.com --smart-ai`,
     "",
