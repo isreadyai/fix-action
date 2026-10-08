@@ -210,9 +210,9 @@ Releases follow semantic versioning; `v1` always points at the latest `v1.x.y`.
 
 ## How it works
 
-Powered by the open-source (MIT) isready.ai engine and the in-runner fix agent. This
+Powered by the MIT scanner and the in-runner fix agent. The web dashboard is source-available under PolyForm Shield 1.0.0. This
 repository ships a pre-bundled, node-target build generated from the
-[`isreadyai/isreadyai`](https://github.com/isreadyai/isreadyai) monorepo — please
+[`isreadyai/isreadyai`](https://github.com/isreadyai/isreadyai) monorepo. Please
 **open issues and PRs there**, not against the generated files here.
 
 Learn more at **[isready.ai](https://isready.ai)**. The audit-only companion action
@@ -221,7 +221,7 @@ is [`isreadyai/audit-action`](https://github.com/isreadyai/audit-action).
 ## Author
 
 <p>
-  <a href="https://x.com/massimodeluisa"><img src="https://img.shields.io/badge/X-@massimodeluisa-000000?style=flat-square&logo=x" alt="X" /></a>
+  <a href="https://x.com/massimodeluisa"><img src="https://img.shields.io/badge/@massimodeluisa-000000?style=flat-square&logo=x" alt="X" /></a>
   <a href="https://github.com/isreadyai"><img src="https://img.shields.io/badge/GitHub-isreadyai-181717?style=flat-square&logo=github" alt="GitHub" /></a>
 </p>
 
